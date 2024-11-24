@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Beat Maker</title>
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+            width: 80%; 
+            max-width: 600px;
+        }
+
+        .controls>div {
+            margin-bottom: 10px;
+        }
+
+        .slider-label {
+            display: inline-block;
+            width: 120px;
+            text-align: right;
+            margin-right: 10px;
+        }
+
+        #sequencer {
+            width: 80%; /* Responsive width */
+            max-width: 600px; /* Max width */
+            border-collapse: collapse;
+            table-layout: fixed; /* Crucial for fixed width columns */
+          }
+          
+          .grid {
+            display: table-row;
+          }
+          
+          .instrument-label {
+            display: table-cell;
+            vertical-align: middle;
+            padding: 8px;
+            border: 1px solid #ccc;
+            font-weight: bold;
+            width: 80px; /* Fixed width for labels */
+          }
+          
+          button {
+            display: table-cell;
+            padding: 8px;
+            border: 1px solid #ccc;
+            background-color: #eee;
+            cursor: pointer;
+            width: 30px; /* Adjust button width */
+            height: 30px; /* Adjust button height */
+            border-radius: 0;
+          }
+          
+          .grid button:first-child {
+            border-top-left-radius: 5px;
+            border-bottom-left-radius: 5px;
+          }
+          
+          .grid button:last-child {
+            border-top-right-radius: 5px;
+            border-bottom-right-radius: 5px;
+          }
+        button:hover,
+        button.selected {
+            /* Color on hover and selected */
+            background-color: hsl(calc(var(--row-hue) + var(--step) * 20), 100%, 50%);
+        }
+
+        .playing {
+            /* Style for currently playing note */
+            outline: 2px solid black;
+            /* Use outline so it doesn't affect layout */
+            outline-offset: -2px;
+            /* Offset to create an "inner" outline */
+
+        }
+
+        .grid button {
+            border-radius: 0;
+        }
+
+
+        button:hover {
+            background-color: #ddd;
+        }
+
+        .selected {
+            background-color: hsl(calc(var(--step) * 40), 100%, 50%);
+        }
+
+        #playButton,
+        #stopButton {
+            background-color: #3a95d6;
+            color: white;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 5px;
+            width: auto;
+            height: auto;
+            margin: 10px;
+        }
+
+        #playButton:hover,
+        #stopButton:hover {
+            background-color: #2e72a2;
+        }
+    </style>
+    
+</head>
+
+<body>
+
+    <h1>Beat Maker</h1>
+
+    <div class="controls">
+        <div>
+            <label for="tempo" class="slider-label">Tempo:</label> <input type="range" id="tempo" min="60" max="200"
+                value="120"> <span id="tempoValue">120</span> BPM
+        </div>
+
+        <div> <label for="snareVolume" class="slider-label">Snare Volume:</label> <input type="range" id="snareVolume"
+                min="-30" max="10" value="1" step="0.01"> </div>
+        <div> <label for="hihatVolume" class="slider-label">Hi-hat Volume:</label> <input type="range" id="hihatVolume"
+                min="-30" max="10" value="1" step="0.01"> </div>
+        <div> <label for="bassVolume" class="slider-label">Bass Volume:</label> <input type="range" id="bassVolume"
+                min="-30" max="10" value="1" step="0.01"> </div>
+        <div> <label for="tomVolume" class="slider-label">Tom Volume:</label> <input type="range" id="tomVolume" min="-30" max="10" value="1" step="0.01"> </div>
+        <div> <label for="cowbellVolume" class="slider-label">Cowbell Volume:</label> <input type="range"
+                id="cowbellVolume" min="-30" max="10" value="1" step="0.01"> </div>
+    </div>
+
+    <div id="sequencer"></div>
+
+        <button class = "playButton" id="playButton">Play</button> 
+        <button class = "stopButton" id="stopButton">Stop</button>
+
+
+    <script>
+        const snareSample = "snare.mp3";
+        const hihatSample = "hihat.mp3";
+        const bassSample = "bass.mp3";
+        const tomSample = "tom.mp3";
+        const cowbellSample = "cowbell.mp3";
+
+        // Tone.js Setup
+        const snare = new Tone.Player().toDestination();
+        const hihat = new Tone.Player().toDestination();
+        const bass = new Tone.Player().toDestination();
+        const tom = new Tone.Player().toDestination();
+        const cowbell = new Tone.Player().toDestination();
+
+
+        // Load Samples with error handling
+        Promise.all([
+            snare.load(snareSample),
+            hihat.load(hihatSample),
+            bass.load(bassSample),
+            tom.load(tomSample),
+            cowbell.load(cowbellSample)
+        ]).then(() => {
+            console.log("All samples loaded!");
+
+
+        }).catch(error => {
+            console.error("Error loading samples:", error)
+        });
+
+
+        const tempoSlider = document.getElementById('tempo');
+        const tempoValue = document.getElementById('tempoValue');
+        const sequencer = document.getElementById('sequencer');
+        const playButton = document.getElementById('playButton');
+        const stopButton = document.getElementById('stopButton');
+
+        const snareVolumeSlider = document.getElementById("snareVolume");
+        const hihatVolumeSlider = document.getElementById("hihatVolume");
+        const bassVolumeSlider = document.getElementById("bassVolume");
+        const tomVolumeSlider = document.getElementById("tomVolume");
+        const cowbellVolumeSlider = document.getElementById("cowbellVolume");
+
+
+
+        snare.volume.value = snareVolumeSlider.value;
+        hihat.volume.value = hihatVolumeSlider.value;
+        bass.volume.value = bassVolumeSlider.value;
+        tom.volume.value = tomVolumeSlider.value;
+        cowbell.volume.value = cowbellVolumeSlider.value;
+
+
+
+        snareVolumeSlider.addEventListener("input", () => { snare.volume.value = snareVolumeSlider.value; });
+        hihatVolumeSlider.addEventListener("input", () => { hihat.volume.value = hihatVolumeSlider.value; });
+        bassVolumeSlider.addEventListener("input", () => { bass.volume.value = bassVolumeSlider.value; });
+        tomVolumeSlider.addEventListener("input", () => { tom.volume.value = tomVolumeSlider.value; });
+        cowbellVolumeSlider.addEventListener("input", () => { cowbell.volume.value = cowbellVolumeSlider.value; });
+
+
+
+        let isPlaying = false;
+        let intervalId;
+        let isDragging = false;
+        let startCell = null;
+
+
+        const rows = ['snare', 'hihat', 'bass', 'tom', 'cowbell'];
+
+        let rowHue = 0;
+
+        rows.forEach(instrument => {
+            const row = document.createElement('div');
+            row.classList.add('grid');
+            rowHue = (rowHue + 10) % 360;
+            row.style.setProperty('--row-hue', rowHue);  // Set hue for each row
+            
+
+            const labelCell = document.createElement('div');
+            labelCell.classList.add('instrument-label');
+            labelCell.textContent = instrument.charAt(0).toUpperCase() + instrument.slice(1);
+            row.appendChild(labelCell);
+
+
+            for (let i = 0; i < 16; i++) {
+                const button = document.createElement('button');
+                button.style.setProperty('--step', rowHue);  // Set step for each button
+                button.dataset.step = i;
+                button.dataset.instrument = instrument;
+                button.addEventListener('click', toggleNote);
+                row.appendChild(button);
+            }
+            sequencer.appendChild(row);
+        });
+
+
+
+        function toggleNote(event) {
+            event.target.classList.toggle('selected');
+        }
+
+        function playBeat() {
+            isPlaying = true;
+            let step = 0;
+            const tempo = tempoSlider.value;
+            const interval = 60000 / (tempo * 2);
+
+            intervalId = setInterval(() => {
+                rows.forEach(instrument => {
+                    const row = sequencer.querySelector(`.grid:nth-child(${rows.indexOf(instrument) + 1})`);
+                    const buttons = row.querySelectorAll('button');
+                    buttons.forEach(button => button.classList.remove('playing'));
+
+                    const currentButton = buttons[step];
+
+                    if (currentButton.classList.contains('selected')) {
+                        currentButton.classList.add('playing');
+                        playInstrument(instrument);
+                    } else {
+
+                        currentButton.classList.add('playing');
+                    }
+
+
+                });
+
+                step = (step + 1) % 16;
+            }, interval);
+        }
+
+
+        function playInstrument(instrument) {
+            switch (instrument) {
+                case 'snare': snare.start(); break;
+                case 'hihat': hihat.start(); break;
+                case 'bass': bass.start(); break;
+                case 'tom': tom.start(); break;
+                case 'cowbell': cowbell.start(); break;
+            }
+        }
+
+
+
+        playButton.addEventListener('click', () => {
+            if (!isPlaying) {
+                playBeat();
+            }
+        });
+
+
+        stopButton.addEventListener('click', () => {
+            clearInterval(intervalId);
+            isPlaying = false;
+            rows.forEach(instrument => {
+                const row = sequencer.children[rows.indexOf(instrument)];
+                const buttons = row.querySelectorAll('button');
+                buttons.forEach(button => button.classList.remove('playing'));
+            });
+        });
+
+
+        tempoSlider.addEventListener('input', () => {
+            tempoValue.textContent = tempoSlider.value;
+            if (isPlaying) {
+                clearInterval(intervalId);
+                playBeat();
+            }
+        });
+
+
+sequencer.addEventListener('mousedown', (event) => {
+  if (event.target.tagName === "BUTTON") {
+    isDragging = true;
+    startCell = event.target;
+    toggleNote(event);
+  }
+});
+
+sequencer.addEventListener('mouseup', () => {
+  isDragging = false;
+  startCell = null;
+});
+
+sequencer.addEventListener("mouseover", (event) => {
+  if (isDragging && event.target.tagName === "BUTTON") {
+    toggleNote(event);
+  }
+});
+
+sequencer.addEventListener("click", (event) => {
+  if (event.target.tagName === "BUTTON" && !isDragging) {
+    toggleNote(event);
+  }
+});
+
+
+function getBeatData() {
+    const beatData = [];
+    rows.forEach(instrument => {
+        const rowBeats = [];
+        const row = sequencer.querySelector(`.grid:nth-child(${rows.indexOf(instrument)+1})`);
+        const buttons = row.querySelectorAll('button');
+        buttons.forEach((button, index) => {
+            if (button.classList.contains('selected')) {
+                rowBeats.push({step: index, instrument: instrument});
+            } else {
+                rowBeats.push({step: index, instrument: "rest"}); // Add rests explicitly
+            }
+        });
+        beatData.push(rowBeats);
+    });
+    return beatData;
+}
+
+// const generateButton = document.getElementById('generateButton'); generateButton.addEventListener('click', async () => { const beatData = getBeatData(); const tempo = document.getElementById('tempo').value; const response = await fetch('/generate_music', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ "beat_data":beatData, "tempo":tempo }) }); // Error handling if (response.ok) { const audioBlob = await response.blob(); const url = URL.createObjectURL(audioBlob); const a = document.createElement('a'); a.href = url; a.download = 'generated_music.mp3'; a.click(); URL.revokeObjectURL(url); } });
+    </script>
+
+</body>
+
+</html>
