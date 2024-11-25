@@ -1,7 +1,8 @@
 # Beat Maker
 
 Beat Maker is a web-based application that allows users to create and play drum beats using a simple and intuitive interface.
-![BeatMaker](https://github.com/user-attachments/assets/d021330c-de04-4502-b3d4-a6bc178488da)
+![Beats](https://github.com/user-attachments/assets/0eb55cdd-0ebd-4e09-908c-e23c530ba89b)
+
 
 ## Features
 
